@@ -1,0 +1,31 @@
+version: 0.0
+os: linux
+files:
+  - source: config/mydomain.com.conf
+    destination: /etc/nginx/conf.d
+  - source: /
+    destination: /var/www/html/mydomain.com
+permissions:
+  - object: /var/www/html/mydomain.com/public/app/lib/pk-ABKLDKJDFSDFDF.pem
+    owner: apache
+    group: apache
+    mode: 600
+    type:
+      - file
+hooks:
+  ApplicationStop:
+    - location: scripts/application-stop.sh
+      timeout: 300
+      runas: root
+  BeforeInstall:
+    - location: scripts/before-install.sh
+      timeout: 300
+      runas: root
+  AfterInstall:
+    - location: scripts/after-install.sh
+      timeout: 300
+      runas: root      
+  ApplicationStart:
+    - location: scripts/application-start.sh
+      timeout: 300
+      runas: root

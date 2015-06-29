@@ -1,0 +1,92 @@
+AWS="/usr/local/bin/aws"
+
+APPLICATION_NAME=$(git config --get codedeploy.application-name)
+BUCKET_NAME=$(git config --get codedeploy.s3bucket)
+SOURCE_DIR=$(git config --get codedeploy.source)
+DEPLOYMENT_PROFILE=$(git config --get codedeploy.profile)
+
+ISACTIVE_MASTER=$(git config --get codedeploy.master.active)
+DEPLOYMENT_GROUP_MASTER=$(git config --get codedeploy.master.deployment-group)
+
+ISACTIVE_QA=$(git config --get codedeploy.qa.active)
+DEPLOYMENT_GROUP_QA=$(git config --get codedeploy.qa.deployment-group)
+
+master_branch='master'
+qa_branch='qa'
+ 
+policy='[Policy] Never force push or delete the '$master_branch' branch! (Prevented with pre-push hook.)'
+ 
+current_branch=$(git symbolic-ref HEAD | sed -e 's,.*/\(.*\),\1,')
+
+BUNDLE_NAME=$(echo $(basename `pwd`)-${current_branch}.zip)
+ 
+push_command=$(ps -ocommand= -p $PPID)
+ 
+is_destructive='force|delete|\-f'
+ 
+will_remove_master_branch=':'$master_branch
+ 
+do_exit(){
+  echo $policy
+  exit 1
+}
+
+do_push() {
+
+  # Call `aws deploy push` to create a new revision of the current repo
+  echo "Pushing ${BUNDLE_NAME} in Mode=${RUN_MODE} to s3://${BUCKET_NAME} and registering with application '${APPLICATION_NAME}'" 1>&2
+  $AWS deploy push --profile ${DEPLOYMENT_PROFILE} \
+    --application-name ${APPLICATION_NAME} \
+    --s3-location s3://${BUCKET_NAME}/${BUNDLE_NAME} \
+    --ignore-hidden-files \
+    --source ${SOURCE_DIR}
+
+  revision_json="{\"revisionType\":\"S3\",\"s3Location\":{\"bucket\":\"${BUCKET_NAME}\",\"bundleType\":\"zip\",\"key\":\"${BUNDLE_NAME}\"}}"
+
+  if [ $? != 0 ]; then 
+      echo "Push to codedeploy failed; skipping create-deployment" 1>&2
+  else
+      echo "Deploying s3://${BUCKET_NAME}/${BUNDLE_NAME} to application ${APPLICATION_NAME}, Mode=${RUN_MODE} and deployment group ${DEPLOYMENT_GROUP_RUN}" 1>&2
+      $AWS deploy create-deployment --profile ${DEPLOYMENT_PROFILE} \
+          --application-name ${APPLICATION_NAME} \
+          --deployment-group-name ${DEPLOYMENT_GROUP_RUN} \
+          --revision $revision_json
+  fi
+  
+  exit 0
+
+}
+
+if [[ $ISACTIVE_MASTER != 1 && $current_branch = $master_branch ]]; then                                                                                                             
+  echo "Code deploy routine is not active (MASTER).. graceful skip"
+  exit 0
+fi
+
+if [[ $ISACTIVE_QA != 1 && $current_branch = $qa_branch ]]; then                                                                                                             
+  echo "Code deploy routine is not active (QA).. graceful skip"
+  exit 0
+fi
+ 
+if [[ $push_command =~ $is_destructive ]] && [[ $current_branch = $master_branch ]]; then
+  do_exit
+fi
+ 
+if [[ $push_command =~ $will_remove_master_branch ]]; then
+  do_exit
+fi
+
+if [[ $current_branch = $master_branch ]]; then
+  RUN_MODE=master
+  DEPLOYMENT_GROUP_RUN=${DEPLOYMENT_GROUP_MASTER}
+  do_push
+fi
+ 
+if [[ $current_branch = $qa_branch ]]; then
+  RUN_MODE=qa
+  DEPLOYMENT_GROUP_RUN=${DEPLOYMENT_GROUP_QA}
+  do_push
+fi
+
+unset do_exit
+ 
+exit 0
