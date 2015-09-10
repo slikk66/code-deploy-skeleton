@@ -5,13 +5,13 @@ More information on lifecycle events and "appspec.yml" file can be found here:
 
 # Set up
 
-# Set up AWS
+## Set up AWS
 
-## 1 - Create an S3 bucket for deployments.
+### 1 - Create an S3 bucket for deployments.
 
 This can be done through the AWS console.
 
-## 2 - Install code deploy agent on your instance(s) (and run it) and roles on your IAM for code deploy
+### 2 - Install code deploy agent on your instance(s) (and run it) and roles on your IAM for code deploy
 
 This will setup the running agent on your machine to accept and process the
 code deployments, and also allow the IAM role to communicate with the necessary
@@ -19,31 +19,31 @@ services to permit the operations securely.
 
 <http://docs.aws.amazon.com/codedeploy/latest/userguide/how-to-set-up-new-instance.html>
 
-# Set up local system
+## Set up local system
 
-## 1 - In your local git repository, copy file `assets/pre-push` to the git hooks directory
+### 1 - In your local git repository, copy file `assets/pre-push` to the git hooks directory
 
     $ cp assets/pre-push .git/hooks/pre-push
 
-## 2 - Set executable permission on file after copy
+### 2 - Set executable permission on file after copy
 
     $ chmod +x ./.git/hooks/pre-push
 
-## 3 - Setup AWS CLI on local machine
+### 3 - Setup AWS CLI on local machine
 
 <http://docs.aws.amazon.com/cli/latest/userguide/installing.html>
 
-## 4 - Configure default profile access via AWS CLI (this will create profile "default", see step #6)
+### 4 - Configure default profile access via AWS CLI (this will create profile "default", see step #6)
 
     $ aws configure
 
-## 5 - Configure your code deploy Application and deployment groups
+### 5 - Configure your code deploy Application and deployment groups
 
 Usually there will be one application (i.e. Zingo.com).   There will be
 deployment groups for each environment.  Name your deployment groups "Prod" and
 "QA".
 
-## 6 - Set your default global GIT variable options for this deployment:
+### 6 - Set your default global GIT variable options for this deployment:
 
 Set the S3 bucket name (i.e. my-code-deployments where the system will upload
 the payload to be deployed after each push)
@@ -66,7 +66,7 @@ the CLI should look for in ~/.aws/credentials):
 
     $ git config codedeploy.profile AWSCLI-PROFILE-NAME
 
-## 7 - Set your branch dependent GIT variable options for the branch deployments:
+### 7 - Set your branch dependent GIT variable options for the branch deployments:
 
     $ git config codedeploy.master.active 1   (1 or 0, this turns system on for master branch auto-deployments)
     $ git config codedeploy.master.deployment-group Prod
@@ -74,7 +74,7 @@ the CLI should look for in ~/.aws/credentials):
     $ git config codedeploy.qa.active 1   (1 or 0, this turns system on for master branch auto-deployments)
     $ git config codedeploy.qa.deployment-group QA
 
-## 8 - Test out a deployment
+### 8 - Test out a deployment
 
 After the above is setup, pushing a commit to branch "master" or "qa" (while
 the system is active, step #7) will result in the source code in your
