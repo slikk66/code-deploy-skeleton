@@ -46,7 +46,7 @@ do_resume_asg(){
 
   else
 
-    echo "Deployment still running.. Mode=${RUN_MODE} Current Deploy Status=${RESUME_RESULT}.. (Sleeping 30).." 1>&2
+    echo "Deployment still running.. Mode=${RUN_MODE} - (Sleeping 30).." 1>&2
     sleep 30
 
     do_resume_asg $1
