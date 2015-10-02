@@ -34,31 +34,36 @@ will_remove_master_branch=':'$master_branch
 
 do_resume_asg(){
 
+  ASG_NAME="${1}"
+
   RESUME_RESULT=$(${AWS} deploy get-deployment --profile ${DEPLOYMENT_PROFILE} \
       --deployment-id ${DEPLOYMENT_RESULT} \
       --output text | ${AWK} '{ print $10 }' | ${HEAD} -n 1)
 
   if [[ $RESUME_RESULT = "Succeeded" ]] || [[ $RESUME_RESULT = "Failed" ]] || [[ $RESUME_RESULT = "Stopped" ]]; then
 
-    echo "**** RE-ENABLING AUTO-SCALING: Mode=${RUN_MODE}.. Current Deploy Status=${RESUME_RESULT} **** ASG=${1}" 1>&2
+    echo "**** RE-ENABLING AUTO-SCALING: Mode=${RUN_MODE}.. Current Deploy Status=${RESUME_RESULT} **** ASG=${ASG_NAME}" 1>&2
     aws autoscaling resume-processes --profile ${DEPLOYMENT_PROFILE} \
-      --auto-scaling-group-name "${1}"
+      --auto-scaling-group-name "${ASG_NAME}"
 
   else
 
     echo "Deployment still running.. Mode=${RUN_MODE} - (Sleeping 30).." 1>&2
     sleep 30
 
-    do_resume_asg $1
+    do_resume_asg $ASG_NAME
 
   fi
 
 }
 
 do_suspend_asg(){
-  echo "**** DISABLING AUTO-SCALING: Mode=${RUN_MODE} **** ASG=${1}" 1>&2
+
+  ASG_NAME="${1}"
+
+  echo "**** DISABLING AUTO-SCALING: Mode=${RUN_MODE} **** ASG=${ASG_NAME}" 1>&2
   aws autoscaling suspend-processes --profile ${DEPLOYMENT_PROFILE} \
-    --auto-scaling-group-name "${1}"
+    --auto-scaling-group-name "${ASG_NAME}"
 }
 
 do_exit(){
