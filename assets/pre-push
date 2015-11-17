@@ -2,17 +2,18 @@ AWS="/usr/local/bin/aws"
 AWK="/usr/bin/awk"
 HEAD="/usr/bin/head"
 
-APPLICATION_NAME=$(git config --get codedeploy.application-name)
 BUCKET_NAME=$(git config --get codedeploy.s3bucket)
 SOURCE_DIR=$(git config --get codedeploy.source)
 DEPLOYMENT_PROFILE=$(git config --get codedeploy.profile)
 
 ISACTIVE_MASTER=$(git config --get codedeploy.master.active)
+APPLICATION_NAME_MASTER=$(git config --get codedeploy.master.application-name)
 DEPLOYMENT_GROUP_MASTER=$(git config --get codedeploy.master.deployment-group)
 DISABLE_ASG_MASTER=$(git config --get codedeploy.master.disable-scaling)
 ASG_MASTER=$(git config --get codedeploy.master.asg-name)
 
 ISACTIVE_QA=$(git config --get codedeploy.qa.active)
+APPLICATION_NAME_QA=$(git config --get codedeploy.qa.application-name)
 DEPLOYMENT_GROUP_QA=$(git config --get codedeploy.qa.deployment-group)
 DISABLE_ASG_QA=$(git config --get codedeploy.qa.disable-scaling)
 ASG_QA=$(git config --get codedeploy.qa.asg-name)
@@ -42,7 +43,7 @@ do_resume_asg(){
 
   if [[ $RESUME_RESULT = "Succeeded" ]] || [[ $RESUME_RESULT = "Failed" ]] || [[ $RESUME_RESULT = "Stopped" ]]; then
 
-    echo "**** RE-ENABLING AUTO-SCALING: Mode=${RUN_MODE}.. Current Deploy Status=${RESUME_RESULT} **** ASG=${ASG_NAME}" 1>&2
+    echo "**** RE-ENABLING AUTO-SCALING: Mode=${RUN_MODE}.. Final Deploy Status=${RESUME_RESULT} **** ASG=${ASG_NAME}" 1>&2
     aws autoscaling resume-processes --profile ${DEPLOYMENT_PROFILE} \
       --auto-scaling-group-name "${ASG_NAME}"
 
@@ -64,6 +65,7 @@ do_suspend_asg(){
   echo "**** DISABLING AUTO-SCALING: Mode=${RUN_MODE} **** ASG=${ASG_NAME}" 1>&2
   aws autoscaling suspend-processes --profile ${DEPLOYMENT_PROFILE} \
     --auto-scaling-group-name "${ASG_NAME}"
+
 }
 
 do_exit(){
@@ -74,9 +76,9 @@ do_exit(){
 do_push() {
 
   # Call `aws deploy push` to create a new revision of the current repo
-  echo "Pushing ${BUNDLE_NAME} in Mode=${RUN_MODE} to s3://${BUCKET_NAME} and registering with application '${APPLICATION_NAME}'" 1>&2
+  echo "Pushing ${BUNDLE_NAME} in Mode=${RUN_MODE} to s3://${BUCKET_NAME} and registering with application '${APPLICATION_NAME_RUN}'" 1>&2
   ${AWS} deploy push --profile ${DEPLOYMENT_PROFILE} \
-    --application-name ${APPLICATION_NAME} \
+    --application-name ${APPLICATION_NAME_RUN} \
     --s3-location s3://${BUCKET_NAME}/${BUNDLE_NAME} \
     --ignore-hidden-files \
     --source ${SOURCE_DIR}
@@ -95,10 +97,10 @@ do_push() {
           do_suspend_asg $ASG_QA
       fi
 
-      echo "Deploying s3://${BUCKET_NAME}/${BUNDLE_NAME} to application ${APPLICATION_NAME}, Mode=${RUN_MODE} and deployment group ${DEPLOYMENT_GROUP_RUN}" 1>&2
+      echo "Deploying s3://${BUCKET_NAME}/${BUNDLE_NAME} to application ${APPLICATION_NAME_RUN}, Mode=${RUN_MODE} and deployment group ${DEPLOYMENT_GROUP_RUN}" 1>&2
 
       DEPLOYMENT_RESULT=$(${AWS} deploy create-deployment --profile ${DEPLOYMENT_PROFILE} \
-          --application-name ${APPLICATION_NAME} \
+          --application-name ${APPLICATION_NAME_RUN} \
           --deployment-group-name ${DEPLOYMENT_GROUP_RUN} \
           --revision $revision_json \
           --output text)
@@ -141,12 +143,14 @@ fi
 
 if [[ $current_branch = $master_branch ]]; then
   RUN_MODE=master
+  APPLICATION_NAME_RUN=${APPLICATION_NAME_MASTER}
   DEPLOYMENT_GROUP_RUN=${DEPLOYMENT_GROUP_MASTER}
   do_push
 fi
 
 if [[ $current_branch = $qa_branch ]]; then
   RUN_MODE=qa
+  APPLICATION_NAME_RUN=${APPLICATION_NAME_QA}
   DEPLOYMENT_GROUP_RUN=${DEPLOYMENT_GROUP_QA}
   do_push
 fi

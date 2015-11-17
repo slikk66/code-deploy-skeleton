@@ -68,11 +68,27 @@ the CLI should look for in ~/.aws/credentials):
 
 ### 7 - Set your branch dependent GIT variable options for the branch deployments:
 
+    Production:
+
     $ git config codedeploy.master.active 1   (1 or 0, this turns system on for master branch auto-deployments)
-    $ git config codedeploy.master.deployment-group Prod
+    $ git config codedeploy.master.application-name ProductionApplicationName
+    $ git config codedeploy.master.deployment-group ProductionDeploymentGroupName
+
+    To pause Production AutoScaling Events during a deployment, optionally add the following:
+
+    $ git config codedeploy.master.disable-scaling 1
+    $ git config codedeploy.master.asg-name ProductionAutoscalingGroupName
+
+    QA:
 
     $ git config codedeploy.qa.active 1   (1 or 0, this turns system on for master branch auto-deployments)
-    $ git config codedeploy.qa.deployment-group QA
+    $ git config codedeploy.qa.application-name QaApplicationName
+    $ git config codedeploy.qa.deployment-group QaDeploymentGroupName
+
+    To pause QA AutoScaling Events during a deployment, optionally add the following:
+
+    $ git config codedeploy.qa.disable-scaling 1
+    $ git config codedeploy.qa.asg-name QaAutoscalingGroupName
 
 ### 8 - Test out a deployment
 
